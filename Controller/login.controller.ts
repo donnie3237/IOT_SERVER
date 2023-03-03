@@ -3,7 +3,7 @@
 const { ObjectID , ObjectId} = require('bson');
 const model = require('../model/main.model');
 const bcrypt =  require('bcrypt')
-
+const jwt = require('jsonwebtoken')
 import express  from "express";
 type Action =  express.Request;
 type Reaction   =  express.Response;
@@ -24,7 +24,6 @@ exports.register =async (req:Action,res:Reaction) => {
             })
             if(result != ""){
                 res.send("รหัสซ้ำ")
-                console.log(":hh")
             }else if(result = []){
             try {
                 const user = {
@@ -47,13 +46,15 @@ exports.register =async (req:Action,res:Reaction) => {
 exports.login = async (req:Action,res:Reaction)=>{
     const User = model
     const userName = req.body.username;
+    
     User.find({"username": userName }).then((result:any)=> {
         if(result !== ""){
             const passwordsMatch =  bcrypt.compareSync(req.body.password , result[0].password )
             if (passwordsMatch) {
                 let UserID = result[0]._id
-                console.log('Successfully logged in');
-                res.send(UserID)
+                const user = {userID : UserID}
+                const token : string = jwt.sign(user , process.env.TOKEN_SECRET)
+                res.json({AccesToken: token})
             }else{
                 console.log('password not true')
                 res.send("wrongpass")
@@ -65,61 +66,18 @@ exports.login = async (req:Action,res:Reaction)=>{
     })
 }
 
-exports.getUser = (req:Action,res:Reaction)=>{
-    model.find({_id :ObjectId(req.params['id'])}).then((result:any)=>{
-        res.send(result)
-    })
-}
-
-// app.post('/register',async (req,res)=>{
-//     const hashPAss = await bcrypt.hash(req.body.password,10)
-//     Database.collection('users').find({"username": req.body.username}).toArray((err,result)=>{
-//         console.log(result)
-        // if(result != ""){
-        //     res.send("รหัสซ้ำ")
-        //     console.log(":hh")
-        // }else if(result = []){
-        // try {
-        //     const user = {
-        //         "name":req.body.name,
-        //         "username":req.body.username,
-        //         "password": hashPAss,
-        //         "img_URI": req.body.img
-        //     }
-        //     Database.collection('users').insertOne(user)
-        //     res.send("success")
-        //         }
-        //      catch (error) {
-        //         console.log(error)
-        //     }
-        // }
-//     });
-// })
-// app.get('/get/:id',(req,res)=>{
-//     Database.collection('users').find({_id :ObjectId(req.params['id'])}).toArray((err,result)=>{
-//         res.send(result)
-//     })
-// })
-// app.post('/login',async(req, res)=> {
-    // const userName = req.body.username;
-    // Database.collection('users').find({"username": userName }).toArray((err, result)=> {
-    //     if(result != ""){
-    //         const passwordsMatch =  bcrypt.compareSync(req.body.password , result[0].password )
-    //         if (passwordsMatch) {
-    //             let UserID = result[0]._id
-    //             console.log('Successfully logged in');
-    //             res.send(UserID)
-    //         }else{
-    //             console.log('password not true')
-    //             res.send("wrongpass")
-    //         }
-    //     }else{
-    //         console.log("user not found")
-    //         res.send("notfound")
-    //     }
-    // })
-// })
-  
-  
-  
-  
+exports.getUser = (req: any,res:Reaction)=>{
+    const User = model
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.decode(token);
+    const ID = decoded.userID
+    User.find({_id: ObjectID(ID)}).then((result:any)=> {
+        res.json({ name: result[0].name,
+                   username:result[0].username,
+                   id : result[0]._id
+                });
+    }).catch((error:any)=>{
+        console.error(error);
+        res.sendStatus(500);
+    });
+} 
