@@ -22,7 +22,7 @@ exports.register =async (req:Action,res:Reaction) => {
                 username: req.body.username,
                 password: hashPAss
             })
-            if(result != ""){
+            if(!result){
                 res.send("รหัสซ้ำ")
             }else if(result = []){
             try {
