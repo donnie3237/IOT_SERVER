@@ -22,7 +22,7 @@ exports.register =async (req:Action,res:Reaction) => {
                 username: req.body.username,
                 password: hashPAss
             })
-            if(!result){
+            if(result != ""){
                 res.send("รหัสซ้ำ")
             }else if(result = []){
             try {
@@ -48,13 +48,14 @@ exports.login = async (req:Action,res:Reaction)=>{
     const userName = req.body.username;
     
     User.find({"username": userName }).then((result:any)=> {
-        if(result !== ""){
+        if(result != ""){
             const passwordsMatch =  bcrypt.compareSync(req.body.password , result[0].password )
             if (passwordsMatch) {
                 let UserID = result[0]._id
+                const now = Math.floor(Date.now()/1000)
                 const user = {userID : UserID}
-                const token : string = jwt.sign(user , process.env.TOKEN_SECRET)
-                res.json({AccesToken: token})
+                const token : string = jwt.sign(user , process.env.TOKEN_SECRET , {expiresIn: now + 60})
+                res.json({token})
             }else{
                 console.log('password not true')
                 res.send("wrongpass")
